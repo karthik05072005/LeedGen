@@ -1,0 +1,9 @@
+.env
+.wwebjs_auth/
+node_modules/
+videos/
+temp_sites/
+logs/
+lead_machine.db
+*.mp4
+*.webm

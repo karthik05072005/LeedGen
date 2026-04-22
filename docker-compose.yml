@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  leadmachine:
+    build: .
+    container_name: leadmachine
+    restart: unless-stopped
+    environment:
+      - APIFY_TOKEN=${APIFY_TOKEN}
+      - VERCEL_TOKEN=${VERCEL_TOKEN}
+      - SCRAPE_CITY=${SCRAPE_CITY}
+      - SCRAPE_CATEGORY=${SCRAPE_CATEGORY}
+      - SCRAPE_MAX_RESULTS=${SCRAPE_MAX_RESULTS}
+      - DAILY_LEAD_LIMIT=${DAILY_LEAD_LIMIT}
+      - CRON_TIME=${CRON_TIME}
+      - DELAY_MIN_MINUTES=${DELAY_MIN_MINUTES}
+      - DELAY_MAX_MINUTES=${DELAY_MAX_MINUTES}
+    volumes:
+      # Persist WhatsApp session so QR only needed once
+      - whatsapp_session:/app/.wwebjs_auth
+      # Persist SQLite database
+      - sqlite_data:/app/lead_machine.db
+      # Persist logs
+      - logs_data:/app/logs
+    shm_size: '1gb'
+
+volumes:
+  whatsapp_session:
+  sqlite_data:
+  logs_data:

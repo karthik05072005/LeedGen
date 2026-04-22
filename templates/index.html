@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{BUSINESS_NAME}} | {{CATEGORY}} in {{CITY}}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --gold: #c9a84c;
+            --gold-light: #e8c97a;
+            --dark: #0a0a0a;
+            --dark-2: #111111;
+            --dark-3: #1a1a1a;
+            --text: #f0ece4;
+            --text-muted: #8a8070;
+            --white: #ffffff;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--dark);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ============ NAV ============ */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 6%;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+        }
+
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: var(--gold);
+            letter-spacing: 1px;
+        }
+
+        .nav-cta {
+            background: var(--gold);
+            color: var(--dark);
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+        }
+
+        .nav-cta:hover { background: var(--gold-light); transform: translateY(-2px); }
+
+        /* ============ HERO ============ */
+        .hero {
+            position: relative;
+            height: 100vh;
+            min-height: 700px;
+            display: flex;
+            align-items: flex-end;
+            padding: 0 6% 100px;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            background-image: url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=85&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            transform: scale(1.05);
+            animation: slowZoom 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes slowZoom {
+            from { transform: scale(1.05); }
+            to   { transform: scale(1.12); }
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to top,
+                rgba(0,0,0,0.95) 0%,
+                rgba(0,0,0,0.5) 50%,
+                rgba(0,0,0,0.2) 100%
+            );
+        }
+
+        .hero-content { position: relative; z-index: 2; max-width: 800px; }
+
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gold);
+            font-size: 0.8rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .hero-tag::before {
+            content: '';
+            display: block;
+            width: 30px;
+            height: 1px;
+            background: var(--gold);
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.8rem, 5vw, 5.5rem);
+            font-weight: 900;
+            line-height: 1.05;
+            margin-bottom: 24px;
+            color: var(--white);
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: rgba(255,255,255,0.65);
+            max-width: 500px;
+            line-height: 1.7;
+            margin-bottom: 40px;
+        }
+
+        .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-gold {
+            background: var(--gold);
+            color: var(--dark);
+        }
+
+        .btn-gold:hover {
+            background: var(--gold-light);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(201,168,76,0.3);
+        }
+
+        .btn-outline {
+            border: 1px solid rgba(255,255,255,0.3);
+            color: var(--white);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+            transform: translateY(-3px);
+        }
+
+        /* ============ STATS ============ */
+        .stats {
+            background: var(--dark-3);
+            padding: 60px 6%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 40px;
+            text-align: center;
+            border-top: 1px solid rgba(201,168,76,0.15);
+            border-bottom: 1px solid rgba(201,168,76,0.15);
+        }
+
+        .stat-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            color: var(--gold);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* ============ ABOUT ============ */
+        .about {
+            padding: 120px 6%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .about-img-wrap {
+            position: relative;
+        }
+
+        .about-img-wrap img {
+            width: 100%;
+            height: 520px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .about-img-badge {
+            position: absolute;
+            bottom: -30px;
+            right: -30px;
+            background: var(--gold);
+            color: var(--dark);
+            padding: 30px;
+            border-radius: 4px;
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .about-img-badge span { font-size: 2.5rem; font-weight: 900; display: block; }
+        .about-img-badge small { font-size: 0.75rem; letter-spacing: 1px; font-family: 'Inter', sans-serif; }
+
+        .section-label {
+            color: var(--gold);
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-label::after {
+            content: '';
+            display: block;
+            flex: 1;
+            height: 1px;
+            background: rgba(201,168,76,0.3);
+            max-width: 60px;
+        }
+
+        .about-text h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 3vw, 3rem);
+            line-height: 1.2;
+            margin-bottom: 24px;
+            color: var(--white);
+        }
+
+        .about-text p {
+            color: var(--text-muted);
+            line-height: 1.9;
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+        }
+
+        /* ============ SERVICES ============ */
+        .services {
+            padding: 0 6% 120px;
+        }
+
+        .services-header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+
+        .services-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 3vw, 3.2rem);
+            color: var(--white);
+            margin-bottom: 16px;
+        }
+
+        .services-header p { color: var(--text-muted); font-size: 1.05rem; }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2px;
+            background: rgba(201,168,76,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .service-card {
+            background: var(--dark-2);
+            padding: 50px 40px;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 3px;
+            height: 0;
+            background: var(--gold);
+            transition: height 0.4s ease;
+        }
+
+        .service-card:hover { background: #161616; }
+        .service-card:hover::before { height: 100%; }
+
+        .service-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .service-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.35rem;
+            color: var(--white);
+            margin-bottom: 12px;
+        }
+
+        .service-card p {
+            color: var(--text-muted);
+            line-height: 1.8;
+            font-size: 0.95rem;
+        }
+
+        /* ============ GALLERY ============ */
+        .gallery {
+            padding: 0 6% 120px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-rows: 280px 280px;
+            gap: 8px;
+        }
+
+        .gallery-item {
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .gallery-item:first-child {
+            grid-row: 1 / 3;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .gallery-item:hover img { transform: scale(1.06); }
+
+        /* ============ CTA / CONTACT ============ */
+        .contact {
+            padding: 120px 6%;
+            background: var(--dark-3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact::before {
+            content: '';
+            position: absolute;
+            top: -100px; right: -100px;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .contact-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .contact h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 3vw, 3.2rem);
+            color: var(--white);
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .contact p {
+            color: var(--text-muted);
+            line-height: 1.9;
+            margin-bottom: 40px;
+            font-size: 1.05rem;
+        }
+
+        .contact-info-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .contact-info-item {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .contact-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(201,168,76,0.1);
+            border: 1px solid rgba(201,168,76,0.2);
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .contact-info-item h4 {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .contact-info-item p {
+            color: var(--text);
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        /* ============ FOOTER ============ */
+        footer {
+            background: #050505;
+            padding: 40px 6%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(201,168,76,0.1);
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        footer .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: var(--gold);
+        }
+
+        footer p { color: var(--text-muted); font-size: 0.85rem; }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 900px) {
+            .about { grid-template-columns: 1fr; gap: 60px; }
+            .about-img-badge { right: 0; bottom: -20px; }
+            .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+            .gallery-item:first-child { grid-row: auto; }
+            .contact-inner { grid-template-columns: 1fr; gap: 50px; }
+        }
+
+        @media (max-width: 600px) {
+            nav { padding: 16px 5%; }
+            .hero { padding: 0 5% 80px; }
+            .about, .services, .gallery, .contact, .stats { padding-left: 5%; padding-right: 5%; }
+            .gallery-grid { grid-template-columns: 1fr; height: auto; }
+            .gallery-item { height: 220px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-logo">{{BUSINESS_NAME}}</div>
+        <a href="#contact" class="nav-cta">Visit Us →</a>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero" id="home">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-tag">{{CATEGORY}} · {{CITY}}</div>
+            <h1>{{BUSINESS_NAME}}</h1>
+            <p>{{TAGLINE}}. An experience you won't forget, right here in the heart of {{CITY}}.</p>
+            <div class="hero-actions">
+                <a href="#contact" class="btn btn-gold">📞 Contact Us</a>
+                <a href="#services" class="btn btn-outline">Our Services ↓</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <div class="stats">
+        <div>
+            <div class="stat-num">500+</div>
+            <div class="stat-label">Happy Customers</div>
+        </div>
+        <div>
+            <div class="stat-num">10+</div>
+            <div class="stat-label">Years Experience</div>
+        </div>
+        <div>
+            <div class="stat-num">4.8★</div>
+            <div class="stat-label">Avg. Rating</div>
+        </div>
+        <div>
+            <div class="stat-num">100%</div>
+            <div class="stat-label">Satisfaction</div>
+        </div>
+    </div>
+
+    <!-- ABOUT -->
+    <section class="about" id="about">
+        <div class="about-img-wrap">
+            <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=85&auto=format&fit=crop" alt="{{BUSINESS_NAME}} Ambiance">
+            <div class="about-img-badge">
+                <span>10+</span>
+                <small>YEARS OF TRUST</small>
+            </div>
+        </div>
+        <div class="about-text">
+            <span class="section-label">Our Story</span>
+            <h2>Where Passion Meets Excellence</h2>
+            <p>{{BUSINESS_NAME}} has been a cornerstone of the {{CITY}} community for years. We take immense pride in delivering exceptional {{CATEGORY}} experiences to every single customer who walks through our doors.</p>
+            <p>Every detail matters to us — from the quality of our offerings to the warmth of our service. Our team is passionate, skilled, and devoted to ensuring your complete satisfaction.</p>
+            <a href="#contact" class="btn btn-gold" style="margin-top:16px;">Get in Touch</a>
+        </div>
+    </section>
+
+    <!-- SERVICES -->
+    <section class="services" id="services">
+        <div class="services-header">
+            <span class="section-label" style="justify-content:center;">What We Offer</span>
+            <h2>Crafted for You</h2>
+            <p>Every service we deliver is shaped around your comfort and delight.</p>
+        </div>
+        <div class="services-grid">
+            <div class="service-card">
+                <span class="service-icon">⭐</span>
+                <h3>Premium Quality</h3>
+                <p>We use only the finest ingredients and methods in our {{CATEGORY}} services, ensuring an unmatched standard every time.</p>
+            </div>
+            <div class="service-card">
+                <span class="service-icon">🤝</span>
+                <h3>Personalized Service</h3>
+                <p>Every guest is unique. Our team takes the time to understand your needs and deliver a tailored experience just for you.</p>
+            </div>
+            <div class="service-card">
+                <span class="service-icon">🏆</span>
+                <h3>Trusted Reputation</h3>
+                <p>Built on years of trust and hundreds of loyal customers across {{CITY}}, we're the go-to name in {{CATEGORY}}.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="gallery">
+        <div class="services-header">
+            <span class="section-label" style="justify-content:center;">Gallery</span>
+            <h2>A Glimpse Inside</h2>
+        </div>
+        <div class="gallery-grid">
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&q=85&auto=format&fit=crop" alt="Restaurant Interior">
+            </div>
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=85&auto=format&fit=crop" alt="Food">
+            </div>
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=600&q=85&auto=format&fit=crop" alt="Dining Experience">
+            </div>
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=600&q=85&auto=format&fit=crop" alt="Ambiance">
+            </div>
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=600&q=85&auto=format&fit=crop" alt="Cuisine">
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="contact" id="contact">
+        <div class="contact-inner">
+            <div>
+                <span class="section-label">Reach Us</span>
+                <h2>Come Experience {{BUSINESS_NAME}}</h2>
+                <p>We'd love to welcome you. Stop by, call us, or ask anything — we're always here for you.</p>
+                <a href="tel:{{PHONE}}" class="btn btn-gold">📞 Call Now — {{PHONE}}</a>
+            </div>
+            <div class="contact-info-grid">
+                <div class="contact-info-item">
+                    <div class="contact-icon">📍</div>
+                    <div>
+                        <h4>Location</h4>
+                        <p>{{ADDRESS}}, {{CITY}}</p>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="contact-icon">📞</div>
+                    <div>
+                        <h4>Phone</h4>
+                        <p>{{PHONE}}</p>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="contact-icon">🍽️</div>
+                    <div>
+                        <h4>Category</h4>
+                        <p>{{CATEGORY}}</p>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="contact-icon">⏰</div>
+                    <div>
+                        <h4>Hours</h4>
+                        <p>Mon – Sun: 9:00 AM – 10:00 PM</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="logo">{{BUSINESS_NAME}}</div>
+        <p>&copy; {{YEAR}} {{BUSINESS_NAME}}. All Rights Reserved. {{CITY}}, India.</p>
+    </footer>
+
+</body>
+</html>

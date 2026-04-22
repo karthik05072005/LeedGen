@@ -1,0 +1,24 @@
+# Secrets — never push these
+.env
+
+# WhatsApp session — regenerated on server
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Database — starts fresh on server
+lead_machine.db
+
+# Node modules
+node_modules/
+
+# Generated files
+videos/
+temp_sites/
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Playwright browser cache
+.playwright/
