@@ -15,59 +15,61 @@ export async function recordSite(htmlFilePath, leadId) {
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
     const finalVideoPath = path.join(videoDir, `${leadId}.mp4`);
-
-    // Fix path for Linux/Docker
     const absoluteHtmlPath = path.isAbsolute(htmlFilePath) ? htmlFilePath : path.resolve(htmlFilePath);
     const fileUrl = `file://${absoluteHtmlPath}`;
-    logger.info(`Recording local file: ${fileUrl}`);
 
     let browser = null;
     try {
         browser = await chromium.launch({ headless: true });
-
         const context = await browser.newContext({
-            viewport: { width: 1280, height: 720 },
+            viewport: { width: 1280, height: 800 }, // Slightly taller viewport
             recordVideo: {
                 dir: tempDir,
-                size: { width: 1280, height: 720 }
+                size: { width: 1280, height: 800 }
             }
         });
 
         const page = await context.newPage();
-        await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 45000 });
-        logger.info('Recording started — page fully loaded with all assets.');
+        await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 60000 });
+        logger.info('Recording started — capturing entire premium site...');
 
+        // Wait for animations to settle
         await page.waitForTimeout(3000);
 
-        // Robust scroll to bottom
-        await page.evaluate(async () => {
-            const scroll = async () => {
-                const totalHeight = document.body.scrollHeight;
-                let current = 0;
-                const step = 20;
-                const delay = 40;
-                
-                while (current < document.body.scrollHeight) {
-                    window.scrollBy(0, step);
-                    current += step;
-                    await new Promise(r => setTimeout(r, delay));
-                    // Re-check height in case images loaded in
-                }
-            };
-            await scroll();
-        });
-
-        await page.waitForTimeout(2000);
-
-        // Robust scroll back to top
-        await page.evaluate(async () => {
-            while (window.scrollY > 0) {
-                window.scrollBy(0, -50);
-                await new Promise(r => setTimeout(r, 20));
+        // NATIVE SCROLLING LOGIC (40-45 Seconds Total)
+        const totalDuration = 40000; // 40 seconds of movement
+        const startTime = Date.now();
+        
+        logger.info('Starting smooth native scroll to bottom...');
+        
+        // Scroll down slowly (approx 30 seconds)
+        while (Date.now() - startTime < 30000) {
+            await page.mouse.wheel(0, 100);
+            await page.waitForTimeout(150);
+            
+            // Check if we hit the bottom, if so, wait a bit and break or stay
+            const isBottom = await page.evaluate(() => (window.innerHeight + window.scrollY) >= document.body.scrollHeight);
+            if (isBottom) {
+                await page.waitForTimeout(1000);
+                break; 
             }
-        });
+        }
 
+        logger.info('Showing footer/contact, then scrolling back up...');
         await page.waitForTimeout(3000);
+
+        // Scroll back up (approx 10 seconds)
+        const upStartTime = Date.now();
+        while (Date.now() - upStartTime < 10000) {
+            await page.mouse.wheel(0, -200);
+            await page.waitForTimeout(100);
+            
+            const isTop = await page.evaluate(() => window.scrollY <= 0);
+            if (isTop) break;
+        }
+
+        // Final hold on hero
+        await page.waitForTimeout(2000);
 
         const videoObj = await page.video();
         await context.close();
@@ -75,27 +77,17 @@ export async function recordSite(htmlFilePath, leadId) {
         browser = null;
 
         const webmPath = await videoObj.path();
+        if (!webmPath || !fs.existsSync(webmPath)) return null;
 
-        if (!webmPath || !fs.existsSync(webmPath)) {
-            logger.warn('Playwright did not produce a video file.');
-            return null;
-        }
-
-        logger.info(`Converting webm → mp4 using ultrafast preset...`);
-        
-        // Use Async exec, ultrafast preset, and 5-minute timeout
+        logger.info(`Processing high-quality video conversion...`);
         try {
             await execAsync(
-                `"${ffmpegPath}" -y -i "${webmPath}" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -movflags +faststart "${finalVideoPath}"`,
-                { timeout: 300000 } // 5 minutes
+                `"${ffmpegPath}" -y -i "${webmPath}" -c:v libx264 -preset ultrafast -crf 24 -c:a aac -movflags +faststart "${finalVideoPath}"`,
+                { timeout: 300000 }
             );
-            
             if (fs.existsSync(webmPath)) fs.unlinkSync(webmPath);
-            logger.info(`mp4 saved: ${finalVideoPath}`);
             return finalVideoPath;
-        } catch (convError) {
-            logger.error(`Conversion specialized error: ${convError.message}`);
-            // Fallback: if mp4 conversion fails, rename webm to mp4 (risky but better than nothing)
+        } catch (e) {
             fs.renameSync(webmPath, finalVideoPath);
             return finalVideoPath;
         }
