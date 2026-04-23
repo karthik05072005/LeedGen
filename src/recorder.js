@@ -34,37 +34,40 @@ export async function recordSite(htmlFilePath, leadId) {
         });
 
         const page = await context.newPage();
-        await page.goto(fileUrl, { waitUntil: 'load', timeout: 30000 });
-        logger.info('Recording started — page loaded.');
+        await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 45000 });
+        logger.info('Recording started — page fully loaded with all assets.');
+
+        await page.waitForTimeout(3000);
+
+        // Robust scroll to bottom
+        await page.evaluate(async () => {
+            const scroll = async () => {
+                const totalHeight = document.body.scrollHeight;
+                let current = 0;
+                const step = 20;
+                const delay = 40;
+                
+                while (current < document.body.scrollHeight) {
+                    window.scrollBy(0, step);
+                    current += step;
+                    await new Promise(r => setTimeout(r, delay));
+                    // Re-check height in case images loaded in
+                }
+            };
+            await scroll();
+        });
 
         await page.waitForTimeout(2000);
 
-        // Faster smooth scroll for server performance
+        // Robust scroll back to top
         await page.evaluate(async () => {
-            const totalHeight = document.body.scrollHeight;
-            const step = 15;
-            const delay = 40;
-            let current = 0;
-            while (current < totalHeight) {
-                window.scrollBy(0, step);
-                current += step;
-                await new Promise(r => setTimeout(r, delay));
-            }
-        });
-
-        await page.waitForTimeout(1000);
-
-        // Quick scroll back to top
-        await page.evaluate(async () => {
-            const step = 40;
-            const delay = 20;
             while (window.scrollY > 0) {
-                window.scrollBy(0, -step);
-                await new Promise(r => setTimeout(r, delay));
+                window.scrollBy(0, -50);
+                await new Promise(r => setTimeout(r, 20));
             }
         });
 
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000);
 
         const videoObj = await page.video();
         await context.close();
