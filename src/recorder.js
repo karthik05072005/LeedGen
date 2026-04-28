@@ -19,82 +19,89 @@ export async function recordSite(htmlFilePath, leadId) {
     const fileUrl = `file://${absoluteHtmlPath}`;
 
     let browser = null;
-    try {
-        browser = await chromium.launch({ headless: true });
-        const context = await browser.newContext({
-            viewport: { width: 1280, height: 800 }, // Slightly taller viewport
-            recordVideo: {
-                dir: tempDir,
-                size: { width: 1280, height: 800 }
-            }
-        });
+    let webmPath = null;
 
-        const page = await context.newPage();
-        await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 60000 });
-        logger.info('Recording started — capturing entire premium site...');
+    // Total timeout for the entire recording process (e.g. 5 minutes)
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Recording timed out after 5 minutes')), 300000)
+    );
 
-        // Wait for animations to settle
-        await page.waitForTimeout(3000);
-
-        // NATIVE SCROLLING LOGIC (40-45 Seconds Total)
-        const totalDuration = 40000; // 40 seconds of movement
-        const startTime = Date.now();
-        
-        logger.info('Starting smooth native scroll to bottom...');
-        
-        // Scroll down slowly (approx 30 seconds)
-        while (Date.now() - startTime < 30000) {
-            await page.mouse.wheel(0, 100);
-            await page.waitForTimeout(150);
-            
-            // Check if we hit the bottom, if so, wait a bit and break or stay
-            const isBottom = await page.evaluate(() => (window.innerHeight + window.scrollY) >= document.body.scrollHeight);
-            if (isBottom) {
-                await page.waitForTimeout(1000);
-                break; 
-            }
-        }
-
-        logger.info('Showing footer/contact, then scrolling back up...');
-        await page.waitForTimeout(3000);
-
-        // Scroll back up (approx 10 seconds)
-        const upStartTime = Date.now();
-        while (Date.now() - upStartTime < 10000) {
-            await page.mouse.wheel(0, -200);
-            await page.waitForTimeout(100);
-            
-            const isTop = await page.evaluate(() => window.scrollY <= 0);
-            if (isTop) break;
-        }
-
-        // Final hold on hero
-        await page.waitForTimeout(2000);
-
-        const videoObj = await page.video();
-        await context.close();
-        await browser.close();
-        browser = null;
-
-        const webmPath = await videoObj.path();
-        if (!webmPath || !fs.existsSync(webmPath)) return null;
-
-        logger.info(`Processing high-quality video conversion...`);
+    const recordingTask = (async () => {
         try {
-            await execAsync(
-                `"${ffmpegPath}" -y -i "${webmPath}" -c:v libx264 -preset ultrafast -crf 24 -c:a aac -movflags +faststart "${finalVideoPath}"`,
-                { timeout: 300000 }
-            );
-            if (fs.existsSync(webmPath)) fs.unlinkSync(webmPath);
-            return finalVideoPath;
-        } catch (e) {
-            fs.renameSync(webmPath, finalVideoPath);
-            return finalVideoPath;
-        }
+            browser = await chromium.launch({ 
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] // Better for VPS/Docker
+            });
+            const context = await browser.newContext({
+                viewport: { width: 1280, height: 800 },
+                recordVideo: {
+                    dir: tempDir,
+                    size: { width: 1280, height: 800 }
+                }
+            });
 
+            const page = await context.newPage();
+            await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 60000 });
+            logger.info('Recording started...');
+
+            await page.waitForTimeout(3000);
+
+            // SCROLLING LOGIC
+            const startTime = Date.now();
+            while (Date.now() - startTime < 25000) { // 25 seconds scroll down
+                await page.mouse.wheel(0, 150);
+                await page.waitForTimeout(200);
+                const isBottom = await page.evaluate(() => (window.innerHeight + window.scrollY) >= document.body.scrollHeight);
+                if (isBottom) break; 
+            }
+
+            await page.waitForTimeout(2000);
+
+            const upStartTime = Date.now();
+            while (Date.now() - upStartTime < 10000) { // 10 seconds scroll up
+                await page.mouse.wheel(0, -300);
+                await page.waitForTimeout(150);
+                const isTop = await page.evaluate(() => window.scrollY <= 0);
+                if (isTop) break;
+            }
+
+            await page.waitForTimeout(2000);
+
+            const videoObj = await page.video();
+            webmPath = await videoObj.path();
+            
+            await context.close();
+            await browser.close();
+            browser = null;
+
+            if (!webmPath || !fs.existsSync(webmPath)) {
+                throw new Error('WebM file not generated');
+            }
+
+            logger.info(`Converting to MP4...`);
+            await execAsync(
+                `"${ffmpegPath}" -y -i "${webmPath}" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -movflags +faststart "${finalVideoPath}"`,
+                { timeout: 120000 }
+            );
+
+            return finalVideoPath;
+        } catch (error) {
+            if (browser) {
+                try { await browser.close(); } catch (e) {}
+            }
+            throw error;
+        } finally {
+            // Cleanup the raw webm file
+            if (webmPath && fs.existsSync(webmPath)) {
+                try { fs.unlinkSync(webmPath); } catch (e) {}
+            }
+        }
+    })();
+
+    try {
+        return await Promise.race([recordingTask, timeoutPromise]);
     } catch (error) {
-        logger.error(`Recording error: ${error.message}`);
-        if (browser) await browser.close();
+        logger.error(`Recording error for ${leadId}: ${error.message}`);
         return null;
     }
 }

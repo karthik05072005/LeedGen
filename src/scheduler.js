@@ -12,9 +12,19 @@ import { initWhatsApp, sendLeadMessage } from './whatsapp.js';
 dotenv.config();
 
 let whatsappClient = null;
+let isPipelineRunning = false;
 
 export async function runDailyPipeline() {
+    if (isPipelineRunning) {
+        logger.warn('Daily pipeline is already running. Skipping this trigger.');
+        return;
+    }
+
+    isPipelineRunning = true;
     logger.info('Starting Daily LeadMachine Pipeline...');
+
+    // Startup cleanup
+    cleanupTempDirs();
 
     try {
         // 1. Initialize WhatsApp if not already
@@ -40,51 +50,65 @@ export async function runDailyPipeline() {
         let errorCount = 0;
 
         for (const lead of leads) {
+            let videoPath = null;
+            let htmlPath = null;
+            
             try {
                 logger.info(`--------------------------------------------------`);
                 logger.info(`Processing Lead: ${lead.name} (${lead.phone})`);
 
                 // a. Generate site HTML locally
-                const htmlPath = await generateSite(lead);
+                htmlPath = await generateSite(lead);
 
-                // b. Record video from local file (no hosting needed!)
-                const videoPath = await recordSite(htmlPath, lead.apify_place_id);
+                // b. Record video from local file
+                videoPath = await recordSite(htmlPath, lead.apify_place_id);
 
                 // c. Send WhatsApp video
                 const sent = await sendLeadMessage(
                     whatsappClient,
                     lead.phone,
-                    null,        // no site URL needed anymore
+                    null,
                     videoPath,
                     lead.name
                 );
 
                 if (sent) {
-                    // d. Mark as sent
                     markAsSent(lead.id, null, videoPath);
                     successCount++;
                     logger.info(`✅ Lead ${lead.name} successfully processed.`);
-
-                    // e. Cleanup video and temp site
-                    if (videoPath && fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
-                    const tempDir = path.dirname(htmlPath);
-                    if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
                 } else {
                     throw new Error('WhatsApp sending failed');
                 }
-
-                // f. Random delay before next lead (15–40 minutes)
-                const minMin = parseInt(process.env.DELAY_MIN_MINUTES || '15');
-                const maxMin = parseInt(process.env.DELAY_MAX_MINUTES || '40');
-                const delayMs = Math.floor(Math.random() * (maxMin - minMin + 1) + minMin) * 60000;
-                logger.info(`Waiting ${Math.round(delayMs / 60000)} minutes before next lead...`);
-                await new Promise(r => setTimeout(r, delayMs));
 
             } catch (err) {
                 logger.error(`Error processing lead ${lead.name}: ${err.message}`);
                 markError(lead.id, err.message);
                 errorCount++;
+            } finally {
+                // Ensure cleanup of temporary files regardless of success/failure
+                try {
+                    if (videoPath && fs.existsSync(videoPath)) {
+                        fs.unlinkSync(videoPath);
+                        logger.info(`Cleaned up video: ${videoPath}`);
+                    }
+                    if (htmlPath) {
+                        const tempDir = path.dirname(htmlPath);
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                            logger.info(`Cleaned up temp site: ${tempDir}`);
+                        }
+                    }
+                } catch (cleanupErr) {
+                    logger.error(`Cleanup error: ${cleanupErr.message}`);
+                }
             }
+
+            // Random delay before next lead (15–40 minutes)
+            const minMin = parseInt(process.env.DELAY_MIN_MINUTES || '15');
+            const maxMin = parseInt(process.env.DELAY_MAX_MINUTES || '40');
+            const delayMs = Math.floor(Math.random() * (maxMin - minMin + 1) + minMin) * 60000;
+            logger.info(`Waiting ${Math.round(delayMs / 60000)} minutes before next lead...`);
+            await new Promise(r => setTimeout(r, delayMs));
         }
 
         logger.info('Daily pipeline complete.');
@@ -92,7 +116,39 @@ export async function runDailyPipeline() {
 
     } catch (err) {
         logger.error(`Critical pipeline failure: ${err.message}`);
+    } finally {
+        isPipelineRunning = false;
     }
+}
+
+function cleanupTempDirs() {
+    logger.info('Performing startup cleanup of temporary directories...');
+    const dirsToClean = [
+        path.resolve('videos/temp'),
+        path.resolve('videos'),
+        path.resolve('temp_sites')
+    ];
+
+    dirsToClean.forEach(dir => {
+        if (fs.existsSync(dir)) {
+            try {
+                const files = fs.readdirSync(dir);
+                for (const file of files) {
+                    const fullPath = path.join(dir, file);
+                    if (fs.lstatSync(fullPath).isDirectory()) {
+                        if (file !== 'temp') { // Don't delete the temp dir itself if we are inside videos
+                             fs.rmSync(fullPath, { recursive: true, force: true });
+                        }
+                    } else {
+                        fs.unlinkSync(fullPath);
+                    }
+                }
+                logger.info(`Cleaned directory: ${dir}`);
+            } catch (err) {
+                logger.warn(`Could not fully clean ${dir}: ${err.message}`);
+            }
+        }
+    });
 }
 
 export function startScheduler() {
